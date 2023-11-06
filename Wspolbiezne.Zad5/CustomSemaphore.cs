@@ -10,56 +10,44 @@ namespace Wspolbiezne.Zad5
 {
     internal class CustomSemaphore
     {
-        bool _isFair;
-        int waiting;
-        int _maxQueue;
+        private Mutex[] mutexes;
+        private Thread[] threads;
 
-        
-        private IDictionary<Thread, Stopwatch> threads = new Dictionary<Thread, Stopwatch>();
-
-        private readonly object _lock = new object();
-        public CustomSemaphore(int maxQueue, bool isFair = false)
+        private int _threadLimit;
+        private bool _isFair;
+        public CustomSemaphore(int threadLimit, bool isFair = false)
         {
+            _threadLimit = threadLimit;
             _isFair = isFair;
-            _maxQueue = maxQueue;
-            waiting = 0;
+            mutexes = new Mutex[threadLimit];
+            threads = new Thread[threadLimit];
+            for (int i = 0; i < threadLimit; i++)
+            {
+                mutexes[i] = new Mutex();
+                threads[i] = null;
+            }
         }
         public void Release()
         {
-            Monitor.Enter(_lock);
-            waiting--;
-            Monitor.Exit(_lock);
-        }
-
-        private void FairRelease()
-        {
-            Monitor.Enter(_lock);
-            threads.Remove(Thread.CurrentThread);
-            waiting--;
-            Monitor.Exit(_lock);
-        }
-
-        public void WaitOne()
-        {
-            Monitor.Enter(_lock);
-            waiting++;
-            if (waiting > _maxQueue)
+            for (int i = 0; i < _threadLimit; i++)
             {
-                Monitor.Wait(_lock);
+                if (threads[i] == Thread.CurrentThread)
+                {
+                    mutexes[i].ReleaseMutex();
+                    break;
+                }
             }
-            Monitor.Exit(_lock);
         }
 
-        private void FairWaitOne()
+        public int Wait()
         {
-            Monitor.Enter(_lock);
-            threads.Add(Thread.CurrentThread, Stopwatch.StartNew());
-            waiting++;
-            if (waiting > _maxQueue)
+            var index = WaitHandle.WaitAny(mutexes.ToArray());
+            if (index != WaitHandle.WaitTimeout)
             {
-                Monitor.Wait(_lock);
+                threads[index] = Thread.CurrentThread;
             }
-            Monitor.Exit(_lock);
+            return index;
         }
+
     }
 }

@@ -13,7 +13,7 @@ for (var y = 0; y < 5; y++)
 {
     // Intresting (If we just pass y then y++ is going to run before function in thread filozof(y) and program will crash
     var tmp = y;
-    new Thread(() => filozof(y)).Start();
+    new Thread(() => filozof(tmp)).Start();
 }
 
 void filozof(int miejsce)
